@@ -6,6 +6,12 @@ on:
       - '**.md'
       - 'docs/**'
       - 'extras/images/**'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'extras/images/**'
+  workflow_dispatch:
 
 jobs:
   build:
@@ -97,6 +103,12 @@ jobs:
 
       - name: Generate
         run: python3 make.py generate-${{ matrix.config.target }}
+
+      - name: Verify WASM exports
+        run: |
+          python3 scripts/verify_wasm_exports.py \
+            build/emscripten/wasm/release/node/pdfium.js \
+            build/emscripten/wasm/release/node/pdfium.esm.js
 
       - name: Test WasmTime
         run: python3 make.py test-${{ matrix.config.target }}time
