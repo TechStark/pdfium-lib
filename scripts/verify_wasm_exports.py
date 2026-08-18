@@ -13,7 +13,6 @@ REQUIRED_FUNCTIONS = [
     "_FPDFText_GetFontInfo",
     "_FPDFText_GetCharAngle",
     "_FPDFText_GetCharIndexAtPos",
-    "_FPDFText_GetTextRenderMode",
     "_FPDFText_GetMatrix",
 ]
 
