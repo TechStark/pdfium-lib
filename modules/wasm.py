@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import tarfile
@@ -405,6 +406,114 @@ def run_task_install():
             f.recreate_dir(target_include_dir)
             f.copy_files(include_dir, target_include_dir, "*.h")
             f.copy_files(include_cpp_dir, target_include_cpp_dir, "*.h")
+
+    l.ok()
+
+
+# -----------------------------------------------------------------------------
+def run_task_package():
+    l.colored("Packaging npm artifacts...", l.YELLOW)
+
+    current_dir = f.current_dir()
+    source_dir = os.path.join("build", "emscripten", "wasm", "release", "node")
+    package_dir = os.path.join("build", "emscripten", "wasm", "release", "npm-package")
+
+    f.recreate_dir(package_dir)
+
+    required_files = [
+        ("pdfium.js", "pdfium.js"),
+        ("pdfium.esm.js", "pdfium.esm.js"),
+        ("pdfium.wasm", "pdfium.wasm"),
+    ]
+
+    for source_name, target_name in required_files:
+        source_path = os.path.join(source_dir, source_name)
+        if f.file_exists(source_path):
+            f.copy_file(source_path, os.path.join(package_dir, target_name))
+
+    esm_wasm_source = os.path.join(source_dir, "pdfium.esm.wasm")
+    if f.file_exists(esm_wasm_source):
+        f.copy_file(esm_wasm_source, os.path.join(package_dir, "pdfium.esm.wasm"))
+    elif f.file_exists(os.path.join(package_dir, "pdfium.wasm")):
+        f.copy_file(
+            os.path.join(package_dir, "pdfium.wasm"),
+            os.path.join(package_dir, "pdfium.esm.wasm"),
+        )
+
+    branch_version = c.pdfium_git_branch.split("/")[-1]
+    package_version = os.getenv("NPM_PACKAGE_VERSION") or f"{branch_version}.0.0"
+    package_revision = os.getenv("NPM_PACKAGE_REVISION") or "1"
+
+    if package_revision and not package_version.endswith(f"-{package_revision}"):
+        package_version = f"{package_version}-{package_revision}"
+
+    package_json = {
+        "name": "@techstark/pdfium",
+        "version": package_version,
+        "description": "WebAssembly build of PDFium for Node.js and browsers",
+        "type": "module",
+        "exports": {
+            ".": {
+                "types": "./index.d.ts",
+                "import": "./index.mjs",
+                "require": "./index.cjs",
+                "default": "./index.mjs",
+            },
+            "./pdfium.wasm": "./pdfium.wasm",
+            "./pdfium.esm.wasm": "./pdfium.esm.wasm",
+        },
+        "main": "./index.cjs",
+        "module": "./index.mjs",
+        "types": "./index.d.ts",
+        "files": [
+            "index.cjs",
+            "index.mjs",
+            "index.browser.mjs",
+            "index.d.ts",
+            "pdfium.wasm",
+            "pdfium.esm.wasm",
+            "README.md",
+            "LICENSE",
+        ],
+        "publishConfig": {
+            "access": "public",
+        },
+        "license": "MIT",
+        "engines": {
+            "node": ">=18",
+        },
+    }
+
+    f.set_file_content(
+        os.path.join(package_dir, "package.json"),
+        json.dumps(package_json, indent=2) + "\n",
+    )
+
+    f.set_file_content(
+        os.path.join(package_dir, "index.cjs"),
+        "module.exports = require('./pdfium.js');\n",
+    )
+    f.set_file_content(
+        os.path.join(package_dir, "index.mjs"),
+        "import pdfium from './pdfium.esm.js';\n\nexport default pdfium;\n",
+    )
+    f.set_file_content(
+        os.path.join(package_dir, "index.browser.mjs"),
+        "import pdfium from './pdfium.esm.js';\n\nexport default pdfium;\n",
+    )
+    f.set_file_content(
+        os.path.join(package_dir, "index.d.ts"),
+        "export interface PDFiumModuleFactory {\n  (moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n}\n\ndeclare const pdfiumModule: PDFiumModuleFactory;\n\nexport default pdfiumModule;\n",
+    )
+    f.set_file_content(
+        os.path.join(package_dir, "README.md"),
+        "# @techstark/pdfium\n\nThis package contains the generated WebAssembly build of PDFium for Node.js and browsers.\n",
+    )
+
+    f.copy_file(
+        os.path.join(current_dir, "LICENSE.md"),
+        os.path.join(package_dir, "LICENSE"),
+    )
 
     l.ok()
 

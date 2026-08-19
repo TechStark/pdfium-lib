@@ -51,6 +51,7 @@ Tasks:
   - test-wasm
   - test-wasmtime
   - generate-wasm
+  - package-wasm
   - publish-wasm
   - publish-to-web-wasm
   - archive-wasm
@@ -219,7 +220,11 @@ def main(options):
     # generate - wasm
     elif task == "generate-wasm":
         wasm.run_task_generate()
-
+ 
+    # package - wasm
+    elif task == "package-wasm":
+        wasm.run_task_package()
+ 
     # publish - wasm
     elif task == "publish-wasm":
         wasm.run_task_publish()
