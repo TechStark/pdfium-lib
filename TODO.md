@@ -19,7 +19,7 @@
 - [x] Cache EMSDK and pip dependencies where practical
 - [x] Cache depot tools so repeated runs do not re-download the toolchain unnecessarily
 - [x] Cache reusable wasm build outputs across workflow reruns so repeated runs can skip the expensive PDFium/build phases when source inputs are unchanged
-- [ ] Reuse build artifacts between packaging and publish jobs
+- [x] Reuse build artifacts between packaging and publish jobs
 - [x] Keep the workflow fast enough for frequent iteration while preserving release safety
 
 ### 3. Improve package README and usage documentation
