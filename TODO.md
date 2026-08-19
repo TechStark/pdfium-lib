@@ -5,7 +5,7 @@
 - [x] Add automatic npm versioning based on workflow run metadata
 - [x] Improve package README with install and usage examples
 - [x] Add a fresh-install smoke test for the published package
-- [ ] Reduce GitHub Actions runtime for the wasm workflow
+- [x] Reduce GitHub Actions runtime for the wasm workflow
 - [ ] Add a minimal wrapper API for easier consumption
 - [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
 - [x] Add release notes / publish documentation
@@ -19,7 +19,7 @@
 - [x] Cache depot tools so repeated runs do not re-download the toolchain unnecessarily
 - [x] Cache reusable wasm build outputs across workflow reruns so repeated runs can skip the expensive PDFium/build phases when source inputs are unchanged
 - [ ] Reuse build artifacts between packaging and publish jobs
-- [ ] Keep the workflow fast enough for frequent iteration while preserving release safety
+- [x] Keep the workflow fast enough for frequent iteration while preserving release safety
 
 ### 3. Improve package README and usage documentation
 
