@@ -64,3 +64,4 @@ Use the following template for future npm publishes:
 - The package currently ships the generated WASM bindings and runtime artifacts directly.
 - It is intended as a low-level package rather than a high-level PDF SDK.
 - For release safety, the workflow validates the package locally before publishing.
+- See [WASM_PACKAGE_API.md](WASM_PACKAGE_API.md) for package entry points and usage examples.
