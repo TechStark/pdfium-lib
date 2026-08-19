@@ -108,6 +108,10 @@ Access releases page to download prebuilt binaries:
 
 https://github.com/paulocoutinhox/pdfium-lib/releases
 
+## npm package publishing
+
+The WASM workflow can build and publish an npm package. For the release workflow, versioning, OIDC publish details, and a release note template, see [docs/PUBLISH_NPM.md](docs/PUBLISH_NPM.md).
+
 ## How to include files and extend pdfium
 
 Check tutorial here: [How to include files](docs/HOW_TO_INCLUDE_FILES.md)

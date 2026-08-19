@@ -8,7 +8,7 @@
 - [ ] Reduce GitHub Actions runtime for the wasm workflow
 - [ ] Add a minimal wrapper API for easier consumption
 - [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
-- [ ] Add release notes / publish documentation
+- [x] Add release notes / publish documentation
 
 ## Current focus
 
