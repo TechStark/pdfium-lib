@@ -18,10 +18,20 @@ on:
         required: false
         default: 'false'
         type: boolean
+      npm_package_version:
+        description: 'Optional full npm version override (for example 1.2.3 or 1.2.3-1)'
+        required: false
+        default: ''
+        type: string
       npm_package_revision:
-        description: 'Package revision suffix for npm version'
+        description: 'Package revision suffix for npm version when no full version override is provided'
         required: false
         default: '1'
+        type: string
+      npm_dist_tag:
+        description: 'NPM dist-tag to use for publishing'
+        required: false
+        default: 'latest'
         type: string
 
 permissions:
@@ -124,6 +134,7 @@ jobs:
 
       - name: Package npm artifacts
         env:
+          NPM_PACKAGE_VERSION: ${{ github.event.inputs.npm_package_version || '' }}
           NPM_PACKAGE_REVISION: ${{ github.event.inputs.npm_package_revision || '1' }}
         run: python3 make.py package-wasm
 
@@ -131,6 +142,20 @@ jobs:
         run: |
           cd build/emscripten/wasm/release/npm-package
           node -e "const pkg = require('./index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('npm package smoke test OK')"
+
+      - name: Validate npm package manifest
+        run: |
+          set -euo pipefail
+          cd build/emscripten/wasm/release/npm-package
+          npm pack --dry-run --json > pack-preview.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('pack-preview.json').read_text())
+          if not data:
+              raise SystemExit('npm pack preview was empty')
+          print(f"npm pack preview: {data[0]['filename']}")
+          PY
 
       - name: Upload npm package artifact
         uses: actions/upload-artifact@v7
@@ -164,6 +189,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    timeout-minutes: 30
     steps:
       - name: Download npm package artifact
         uses: actions/download-artifact@v8
@@ -175,9 +201,19 @@ jobs:
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
+      - name: Verify npm package manifest
+        working-directory: npm-package
+        run: |
+          set -euo pipefail
+          npm pack --dry-run --json > pack-preview.json
+          npm pkg get name version
       - name: Publish npm package
         working-directory: npm-package
-        run: npm publish --provenance --access public
+        env:
+          NPM_DIST_TAG: ${{ github.event.inputs.npm_dist_tag || 'latest' }}
+        run: |
+          set -euo pipefail
+          npm publish --provenance --access public --tag "${NPM_DIST_TAG}"
 
   deploy:
     name: Deploy

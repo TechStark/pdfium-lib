@@ -448,9 +448,9 @@ def run_task_package():
         package_version = f"{package_version}-{package_revision}"
 
     package_json = {
-        "name": "@techstark/pdfium",
+        "name": os.getenv("NPM_PACKAGE_NAME") or "@techstark/pdfium",
         "version": package_version,
-        "description": "WebAssembly build of PDFium for Node.js and browsers",
+        "description": os.getenv("NPM_PACKAGE_DESCRIPTION") or "WebAssembly build of PDFium for Node.js and browsers",
         "type": "module",
         "exports": {
             ".": {
@@ -477,7 +477,24 @@ def run_task_package():
         ],
         "publishConfig": {
             "access": "public",
+            "provenance": True,
         },
+        "repository": {
+            "type": "git",
+            "url": "https://github.com/TechStark/pdfium-lib.git",
+        },
+        "homepage": "https://github.com/TechStark/pdfium-lib",
+        "bugs": {
+            "url": "https://github.com/TechStark/pdfium-lib/issues",
+        },
+        "keywords": [
+            "pdfium",
+            "wasm",
+            "pdf",
+            "browser",
+            "node",
+        ],
+        "sideEffects": False,
         "license": "MIT",
         "engines": {
             "node": ">=18",
