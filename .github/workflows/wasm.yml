@@ -59,15 +59,26 @@ jobs:
       - name: Upgrade PIP
         run: python3 -m pip install --upgrade pip setuptools wheel
 
+      - name: Cache EMSDK
+        id: cache-emsdk
+        uses: actions/cache@v4
+        with:
+          path: emsdk
+          key: emsdk-6.0.0-${{ runner.os }}
+
       - name: Install EMSDK
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p emsdk
           cd emsdk
-          git clone --depth 1 https://github.com/emscripten-core/emsdk.git .
-          ./emsdk install 6.0.0
-          ./emsdk activate 6.0.0
+          if [ ! -x ./emsdk ]; then
+            git clone --depth 1 https://github.com/emscripten-core/emsdk.git .
+          fi
+          if [ ! -d "upstream/emscripten" ]; then
+            ./emsdk install 6.0.0
+            ./emsdk activate 6.0.0
+          fi
           echo "EMSDK=${{ github.workspace }}/emsdk" >> "$GITHUB_ENV"
           echo "${{ github.workspace }}/emsdk:${{ github.workspace }}/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
@@ -89,6 +100,12 @@ jobs:
 
       - name: Python requirements
         run: python3 -m pip install --user -r requirements.txt
+
+      - name: Cache depot tools
+        uses: actions/cache@v4
+        with:
+          path: build/depot-tools
+          key: depot-tools-${{ runner.os }}-${{ hashFiles('make.py') }}
 
       - name: Depot tools
         run: python3 make.py build-depot-tools
@@ -126,46 +143,6 @@ jobs:
         run: |
           cd build/emscripten/wasm/release/npm-package
           node -e "const pkg = require('./index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('npm package smoke test OK')"
-
-      - name: Fresh install smoke test
-        run: |
-          set -euo pipefail
-          tmpdir="$(mktemp -d)"
-          trap 'rm -rf "$tmpdir"' EXIT
-          cp -R build/emscripten/wasm/release/npm-package "$tmpdir/package"
-          cd "$tmpdir"
-          npm init -y >/dev/null 2>&1
-          npm install "$tmpdir/package" >/dev/null 2>&1
-          pkg_dir="$tmpdir/node_modules/@techstark/pdfium"
-          if [ ! -f "$pkg_dir/package.json" ]; then
-            echo "installed package directory not found" >&2
-            exit 1
-          fi
-          node -e "const pkg = require('$pkg_dir/index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('fresh install smoke test OK')"
-
-      - name: Validate npm package manifest
-        run: |
-          set -euo pipefail
-          cd build/emscripten/wasm/release/npm-package
-          npm pack --dry-run --json > pack-preview.json
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('pack-preview.json').read_text())
-          if not data:
-              raise SystemExit('npm pack preview was empty')
-          print(f"npm pack preview: {data[0]['filename']}")
-          PY
-
-      - name: Show npm package version
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-          pkg = json.loads(Path('build/emscripten/wasm/release/npm-package/package.json').read_text())
-          print(f"npm package version: {pkg['name']}@{pkg['version']}")
-          PY
 
       - name: Upload npm package artifact
         uses: actions/upload-artifact@v7
@@ -217,6 +194,27 @@ jobs:
           set -euo pipefail
           npm pack --dry-run --json > pack-preview.json
           npm pkg get name version
+      - name: Show npm package version
+        working-directory: npm-package
+        run: |
+          set -euo pipefail
+          npm pkg get name version
+      - name: Fresh install smoke test
+        working-directory: npm-package
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+          npm pack --pack-destination "$tmpdir"
+          cd "$tmpdir"
+          npm init -y >/dev/null 2>&1
+          npm install "$(find "$tmpdir" -maxdepth 1 -name '*.tgz' | head -n 1)" >/dev/null 2>&1
+          pkg_dir="$tmpdir/node_modules/@techstark/pdfium"
+          if [ ! -f "$pkg_dir/package.json" ]; then
+            echo "installed package directory not found" >&2
+            exit 1
+          fi
+          node -e "const pkg = require('$pkg_dir/index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('fresh install smoke test OK')"
       - name: Publish npm package
         working-directory: npm-package
         env:

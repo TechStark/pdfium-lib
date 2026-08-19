@@ -5,13 +5,22 @@
 - [x] Add automatic npm versioning based on workflow run metadata
 - [x] Improve package README with install and usage examples
 - [x] Add a fresh-install smoke test for the published package
+- [ ] Reduce GitHub Actions runtime for the wasm workflow
 - [ ] Add a minimal wrapper API for easier consumption
 - [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
 - [ ] Add release notes / publish documentation
 
 ## Current focus
 
-### 1. Improve package README and usage documentation
+### 1. Reduce GitHub Actions runtime for the wasm workflow (highest priority)
+
+- [x] Move the fresh-install smoke test out of the default build path so normal pushes are faster
+- [x] Cache EMSDK and pip dependencies where practical
+- [x] Cache depot tools so repeated runs do not re-download the toolchain unnecessarily
+- [ ] Reuse build artifacts between packaging and publish jobs
+- [ ] Keep the workflow fast enough for frequent iteration while preserving release safety
+
+### 3. Improve package README and usage documentation
 
 - Add installation instructions for Node.js and browsers
 - Add a short example showing how to load the generated module
