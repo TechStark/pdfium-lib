@@ -18,21 +18,6 @@ on:
         required: false
         default: 'false'
         type: boolean
-      npm_package_version:
-        description: 'Optional full npm version override (for example 1.2.3 or 1.2.3-1)'
-        required: false
-        default: ''
-        type: string
-      npm_package_revision:
-        description: 'Package revision suffix for npm version when no full version override is provided'
-        required: false
-        default: '1'
-        type: string
-      npm_dist_tag:
-        description: 'NPM dist-tag to use for publishing'
-        required: false
-        default: 'latest'
-        type: string
 
 permissions:
   contents: read
@@ -134,8 +119,7 @@ jobs:
 
       - name: Package npm artifacts
         env:
-          NPM_PACKAGE_VERSION: ${{ github.event.inputs.npm_package_version || '' }}
-          NPM_PACKAGE_REVISION: ${{ github.event.inputs.npm_package_revision || '1' }}
+          NPM_PACKAGE_REVISION: ${{ format('{0}.{1}', github.run_number, github.run_attempt) }}
         run: python3 make.py package-wasm
 
       - name: Smoke test npm package
@@ -155,6 +139,16 @@ jobs:
           if not data:
               raise SystemExit('npm pack preview was empty')
           print(f"npm pack preview: {data[0]['filename']}")
+          PY
+
+      - name: Show npm package version
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          pkg = json.loads(Path('build/emscripten/wasm/release/npm-package/package.json').read_text())
+          print(f"npm package version: {pkg['name']}@{pkg['version']}")
           PY
 
       - name: Upload npm package artifact
@@ -210,7 +204,7 @@ jobs:
       - name: Publish npm package
         working-directory: npm-package
         env:
-          NPM_DIST_TAG: ${{ github.event.inputs.npm_dist_tag || 'latest' }}
+          NPM_DIST_TAG: latest
         run: |
           set -euo pipefail
           npm publish --provenance --access public --tag "${NPM_DIST_TAG}"
