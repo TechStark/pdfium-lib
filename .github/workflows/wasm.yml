@@ -127,6 +127,17 @@ jobs:
           cd build/emscripten/wasm/release/npm-package
           node -e "const pkg = require('./index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('npm package smoke test OK')"
 
+      - name: Fresh install smoke test
+        run: |
+          set -euo pipefail
+          tmpdir="$(mktemp -d)"
+          trap 'rm -rf "$tmpdir"' EXIT
+          cp -R build/emscripten/wasm/release/npm-package "$tmpdir/package"
+          cd "$tmpdir"
+          npm init -y >/dev/null 2>&1
+          npm install "$tmpdir/package" >/dev/null 2>&1
+          node -e "const pkg = require('node_modules/@techstark/pdfium/index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('fresh install smoke test OK')"
+
       - name: Validate npm package manifest
         run: |
           set -euo pipefail

@@ -4,7 +4,7 @@
 
 - [x] Add automatic npm versioning based on workflow run metadata
 - [x] Improve package README with install and usage examples
-- [ ] Add a fresh-install smoke test for the published package
+- [x] Add a fresh-install smoke test for the published package
 - [ ] Add a minimal wrapper API for easier consumption
 - [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
 - [ ] Add release notes / publish documentation
