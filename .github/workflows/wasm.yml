@@ -113,25 +113,46 @@ jobs:
       - name: Environment
         run: echo "$PWD/build/depot-tools" >> "$GITHUB_PATH"
 
+      - name: Restore wasm build cache
+        id: cache-wasm-build
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/emscripten/pdfium
+            build/emscripten/wasm
+          key: wasm-build-${{ runner.os }}-${{ hashFiles('make.py', 'modules/*.py', 'requirements.txt', 'scripts/verify_wasm_exports.py', 'extras/wasm/**') }}
+          restore-keys: |
+            wasm-build-${{ runner.os }}-
+
+      - name: Show wasm build cache status
+        run: echo "wasm build cache hit=${{ steps.cache-wasm-build.outputs.cache-hit }}"
+
       - name: PDFium
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py build-pdfium-${{ matrix.config.target }}
 
       - name: Patch
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py patch-${{ matrix.config.target }}
 
       - name: Patch - Check
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py patch-${{ matrix.config.target }}
 
       - name: Build
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py build-${{ matrix.config.target }}
 
       - name: Install
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py install-${{ matrix.config.target }}
 
       - name: Test
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py test-${{ matrix.config.target }}
 
       - name: Generate
+        if: steps.cache-wasm-build.outputs.cache-hit != 'true'
         run: python3 make.py generate-${{ matrix.config.target }}
 
       - name: Package npm artifacts
