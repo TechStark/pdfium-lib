@@ -46,24 +46,10 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Cache apt package archives
-        id: cache-apt-packages
-        uses: actions/cache@v5
-        with:
-          path: /var/cache/apt/archives/*.deb
-          key: apt-deb-${{ runner.os }}-${{ hashFiles('.github/workflows/wasm.yml') }}
-          restore-keys: |
-            apt-deb-${{ runner.os }}-
-
       - name: Install System Packages
         run: |
           set -euo pipefail
-          sudo mkdir -p /var/cache/apt/archives/partial
-          if [ "${{ steps.cache-apt-packages.outputs.cache-hit }}" != "true" ]; then
-            sudo apt-get update
-          else
-            echo "Using cached apt package archives"
-          fi
+          sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             doxygen cmake ninja-build
           doxygen --version
