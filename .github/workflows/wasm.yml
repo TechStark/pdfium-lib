@@ -46,10 +46,25 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
+      - name: Cache apt package lists and archives
+        uses: actions/cache@v4
+        with:
+          path: |
+            /var/cache/apt/archives
+            /var/lib/apt/lists
+          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/wasm.yml') }}
+          restore-keys: |
+            apt-${{ runner.os }}-
+
       - name: Install System Packages
         run: |
           set -euo pipefail
-          sudo apt-get update
+          sudo mkdir -p /var/cache/apt/archives/partial /var/lib/apt/lists/partial
+          if [ -d /var/lib/apt/lists ] && find /var/lib/apt/lists -maxdepth 1 -type f | grep -q .; then
+            echo "Using cached apt package lists"
+          else
+            sudo apt-get update
+          fi
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             doxygen cmake ninja-build
           doxygen --version
