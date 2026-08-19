@@ -46,24 +46,23 @@ jobs:
           python-version: "3.10"
           cache: "pip"
 
-      - name: Cache apt package lists and archives
-        uses: actions/cache@v4
+      - name: Cache apt package archives
+        id: cache-apt-packages
+        uses: actions/cache@v5
         with:
-          path: |
-            /var/cache/apt/archives
-            /var/lib/apt/lists
-          key: apt-${{ runner.os }}-${{ hashFiles('.github/workflows/wasm.yml') }}
+          path: /var/cache/apt/archives/*.deb
+          key: apt-deb-${{ runner.os }}-${{ hashFiles('.github/workflows/wasm.yml') }}
           restore-keys: |
-            apt-${{ runner.os }}-
+            apt-deb-${{ runner.os }}-
 
       - name: Install System Packages
         run: |
           set -euo pipefail
-          sudo mkdir -p /var/cache/apt/archives/partial /var/lib/apt/lists/partial
-          if [ -d /var/lib/apt/lists ] && find /var/lib/apt/lists -maxdepth 1 -type f | grep -q .; then
-            echo "Using cached apt package lists"
-          else
+          sudo mkdir -p /var/cache/apt/archives/partial
+          if [ "${{ steps.cache-apt-packages.outputs.cache-hit }}" != "true" ]; then
             sudo apt-get update
+          else
+            echo "Using cached apt package archives"
           fi
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             doxygen cmake ninja-build
@@ -76,7 +75,7 @@ jobs:
 
       - name: Cache EMSDK
         id: cache-emsdk
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: emsdk
           key: emsdk-6.0.0-${{ runner.os }}
@@ -117,7 +116,7 @@ jobs:
         run: python3 -m pip install --user -r requirements.txt
 
       - name: Cache depot tools
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: build/depot-tools
           key: depot-tools-${{ runner.os }}-${{ hashFiles('make.py') }}
@@ -130,7 +129,7 @@ jobs:
 
       - name: Restore wasm build cache
         id: cache-wasm-build
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             build/emscripten/pdfium

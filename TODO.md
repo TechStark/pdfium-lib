@@ -6,6 +6,7 @@
 - [x] Improve package README with install and usage examples
 - [x] Add a fresh-install smoke test for the published package
 - [x] Reduce GitHub Actions runtime for the wasm workflow
+- [x] Resolve the apt-cache save warning by narrowing the cache scope to actual `.deb` archives
 - [ ] Add a minimal wrapper API for easier consumption
 - [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
 - [x] Add release notes / publish documentation
