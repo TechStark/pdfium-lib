@@ -522,9 +522,55 @@ def run_task_package():
         os.path.join(package_dir, "index.d.ts"),
         "export interface PDFiumModuleFactory {\n  (moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n}\n\ndeclare const pdfiumModule: PDFiumModuleFactory;\n\nexport default pdfiumModule;\n",
     )
+    readme_content = """# @techstark/pdfium
+
+This package contains the generated WebAssembly build of PDFium for Node.js and browsers.
+It is intended for advanced integrations that want to consume the generated bindings directly.
+
+## Installation
+
+```bash
+npm install @techstark/pdfium
+```
+
+## Usage
+
+### CommonJS
+
+```js
+const pdfiumModule = require('@techstark/pdfium');
+
+async function main() {
+  const pdfium = await pdfiumModule();
+  console.log(typeof pdfium.ccall, typeof pdfium.cwrap);
+}
+
+main().catch(console.error);
+```
+
+### ES modules
+
+```js
+import pdfiumModule from '@techstark/pdfium';
+
+const pdfium = await pdfiumModule();
+console.log(typeof pdfium.ccall, typeof pdfium.cwrap);
+```
+
+## Notes
+
+- This package ships the generated Emscripten artifacts (`pdfium.js`, `pdfium.wasm`, `pdfium.esm.js`, `pdfium.esm.wasm`) rather than a high-level PDF API.
+- It is best suited for integrations that want to call the underlying PDFium bindings directly.
+- For the latest source and issue tracking, see the repository below.
+
+## Repository
+
+https://github.com/TechStark/pdfium-lib
+"""
+
     f.set_file_content(
         os.path.join(package_dir, "README.md"),
-        "# @techstark/pdfium\n\nThis package contains the generated WebAssembly build of PDFium for Node.js and browsers.\n",
+        readme_content,
     )
 
     f.copy_file(

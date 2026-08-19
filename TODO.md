@@ -1,203 +1,38 @@
-# PDFium-lib Character Positioning APIs Enhancement
+# npm package publishing improvement plan
 
-## Background
+## Status
 
-We are building a PDF editor (https://github.com/user/embed-pdf-editor) that requires accurate character-level text positioning for features like:
+- [x] Add automatic npm versioning based on workflow run metadata
+- [x] Improve package README with install and usage examples
+- [ ] Add a fresh-install smoke test for the published package
+- [ ] Add a minimal wrapper API for easier consumption
+- [ ] Switch initial publish to a prerelease/dist-tag flow (for example `beta`)
+- [ ] Add release notes / publish documentation
 
-1. **Text Selection Overlay** - Blue highlight boxes when selecting text should align perfectly with rendered PDF text
-2. **Search with Highlight** - Highlighting search results accurately
-3. **Accessible Text Layers** - Screen readers need precise text positions
+## Current focus
 
-### The Problem
+### 1. Improve package README and usage documentation
 
-Currently, `@hyzyla/pdfium` (which wraps pdfium-lib) only exposes basic text APIs:
-- `_FPDFText_LoadPage` - Load text page
-- `_FPDFText_CountChars` - Count characters  
-- `_FPDFText_GetText` - Get text content
+- Add installation instructions for Node.js and browsers
+- Add a short example showing how to load the generated module
+- Clarify that this package ships raw WASM bindings and is not a high-level PDF SDK
+- Mention current limitations and the repository link
 
-But it does **NOT** expose character positioning APIs like `FPDFText_GetCharBox`, which are essential for:
-- Getting bounding box of each character (x, y, width, height)
-- Building text selection layers
-- Accurate font metrics
+### 2. Add a fresh-install smoke test
 
-### Current Workaround
+- Create a temporary directory
+- Install the generated package from the local tarball or package directory
+- Run a minimal import/require check
 
-The editor currently uses heuristic positioning (estimating positions based on margins and font sizes), but this is inaccurate for:
-- Complex layouts (multi-column, tables)
-- Proper kerning
-- Rotated text
-- Real PDF with varying fonts
+### 3. Add a minimal wrapper API
 
-## What Was Done
+- Provide a small `loadPdfium` or `createPdfiumModule` helper
+- Keep it intentionally thin and low-risk
 
-### 1. Modified `extras/wasm/utils/function-names.js`
+### 4. Publish flow polish
 
-Added the following functions to the export list:
-
-```javascript
-const additionalFunctions = [
-  'FPDFText_GetCharBox',        // Get tight bounding box of a character
-  'FPDFText_GetLooseCharBox',   // Get loose bounding box covering entire glyph  
-  'FPDFText_GetCharOrigin',     // Get origin point of a character (for cursor)
-  'FPDFText_GetFontSize',       // Get font size of a character
-  'FPDFText_GetFontInfo',       // Get font name and flags
-  'FPDFText_GetCharAngle',      // Get rotation angle of a character
-  'FPDFText_GetCharIndexAtPos', // Get character index at a position
-  'FPDFText_GetTextRenderMode', // Get text rendering mode
-  'FPDFText_GetMatrix',         // Get transformation matrix
-];
-```
-
-**Commit**: `d1517bc` - "feat: add FPDFText character positioning APIs for accurate text selection"
-
-## TODO Tasks
-
-### Task 1: Build and Test Custom WASM
-
-**Steps:**
-
-1. Ensure build environment is ready:
-   ```bash
-   # Requirements:
-   # - Python 3.x
-   # - depot_tools (gclient, gn, ninja)
-   # - Emscripten SDK (emsdk)
-   # - Node.js
-   # - Doxygen
-   ```
-
-2. Build PDFium for WASM:
-   ```bash
-   cd C:\code\github\pdfium-lib
-   python make.py run task build-pdfium target=wasm
-   ```
-
-3. Generate WASM bindings:
-   ```bash
-   python make.py run task generate target=wasm config=release
-   ```
-
-4. Verify functions are exported:
-   ```bash
-   # Check generated JS file contains our functions
-   grep "FPDFText_GetCharBox" build/emscripten/wasm/release/node/pdfium.js
-   ```
-
-**Success Criteria:**
-- WASM builds without errors
-- `pdfium.js` and `pdfium.wasm` are generated
-- All 9 new functions are present in the export list
-
----
-
-### Task 2: Create Test Page
-
-Create a simple test to verify the new APIs work:
-
-```html
-<!-- test-char-position.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <title>FPDFText_GetCharBox Test</title>
-</head>
-<body>
-    <h1>Character Position Test</h1>
-    <input type="file" id="pdfFile" accept=".pdf">
-    <canvas id="pdfCanvas"></canvas>
-    <pre id="output"></pre>
-
-    <script type="module">
-        import { PDFiumLibrary } from './build/emscripten/wasm/release/node/pdfium.esm.js';
-        
-        document.getElementById('pdfFile').addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            
-            const buffer = await file.arrayBuffer();
-            const library = await PDFiumLibrary.init();
-            const doc = await library.loadDocument(new Uint8Array(buffer));
-            const page = doc.getPage(0);
-            
-            // Get text page
-            const textPage = library.module._FPDFText_LoadPage(page._pageIdx);
-            
-            // Get character positions using new API
-            const charCount = library.module._FPDFText_CountChars(textPage);
-            
-            const output = document.getElementById('output');
-            output.textContent = `Characters: ${charCount}\n\n`;
-            
-            // Allocate memory for doubles
-            const ptr = library.module.wasmExports.malloc(8 * 4);
-            
-            for (let i = 0; i < Math.min(10, charCount); i++) {
-                // Call FPDFText_GetCharBox
-                const result = library.module._FPDFText_GetCharBox(
-                    textPage, i, ptr, ptr+8, ptr+16, ptr+24
-                );
-                
-                if (result) {
-                    const left = library.module.HEAPF64[ptr/8];
-                    const right = library.module.HEAPF64[(ptr+8)/8];
-                    const bottom = library.module.HEAPF64[(ptr+16)/8];
-                    const top = library.module.HEAPF64[(ptr+24)/8];
-                    
-                    output.textContent += `Char ${i}: (${left}, ${bottom}) - (${right}, ${top})\n`;
-                }
-            }
-            
-            library.module.wasmExports.free(ptr);
-            library.module._FPDFText_ClosePage(textPage);
-            doc.destroy();
-            library.destroy();
-        });
-    </script>
-</body>
-</html>
-```
-
-**Success Criteria:**
-- Test page loads PDF successfully
-- Character bounding boxes are printed to console
-- No JavaScript errors about missing functions
-
----
-
-### Task 3: Integrate with @hyzyla/pdfium
-
-Two options:
-
-**Option A: Publish as separate package**
-```bash
-# Create package.json
-npm init -y
-# Name: @yourname/pdfium with character APIs
-# Version: 2.1.14-custom
-
-# Publish to npm (private or public)
-npm publish
-```
-
-**Option B: Local replacement**
-```bash
-# Copy built files to embed-pdf-editor project
-cp build/emscripten/wasm/release/node/* \
-   C:\code\github\embed-pdf-editor\node_modules\.pnpm\@hyzyla+pdfium@2.1.13\node_modules\@hyzyla\pdfium\dist\
-```
-
-Update `embed-pdf-editor` to use the custom build in `package.json`:
-```json
-{
-  "dependencies": {
-    "@hyzyla/pdfium": "file:../pdfium-lib/build/emscripten/wasm/release"
-  }
-}
-```
-
----
-
-### Task 4: Update Type Definitions
+- Publish the first public release under a prerelease tag such as `beta`
+- Add a short release note template for future publishes
 
 The `@hyzyla/pdfium` package needs updated TypeScript definitions.
 
