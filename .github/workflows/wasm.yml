@@ -253,7 +253,7 @@ jobs:
       - name: Publish npm package
         working-directory: npm-package
         env:
-          NPM_DIST_TAG: latest
+          NPM_DIST_TAG: beta
         run: |
           set -euo pipefail
           npm publish --provenance --access public --tag "${NPM_DIST_TAG}"

@@ -39,6 +39,10 @@ The package version is based on:
 
 This keeps publish iterations simple while still producing a unique version each time.
 
+## Publish tag strategy
+
+Manual npm publishes default to the `beta` dist-tag so the initial public release is easier to validate before promoting it to `latest`.
+
 ## Release notes template
 
 Use the following template for future npm publishes:

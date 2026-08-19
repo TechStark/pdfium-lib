@@ -508,63 +508,65 @@ def run_task_package():
 
     f.set_file_content(
         os.path.join(package_dir, "index.cjs"),
-        "module.exports = require('./pdfium.js');\n",
+        "const pdfiumModuleFactory = require('./pdfium.js');\n\nasync function loadPdfium(moduleOverrides) {\n  return pdfiumModuleFactory(moduleOverrides);\n}\n\nfunction createPdfiumModule(moduleOverrides) {\n  return loadPdfium(moduleOverrides);\n}\n\nmodule.exports = loadPdfium;\nmodule.exports.loadPdfium = loadPdfium;\nmodule.exports.createPdfiumModule = createPdfiumModule;\n",
     )
     f.set_file_content(
         os.path.join(package_dir, "index.mjs"),
-        "import pdfium from './pdfium.esm.js';\n\nexport default pdfium;\n",
+        "import pdfiumModuleFactory from './pdfium.esm.js';\n\nexport async function loadPdfium(moduleOverrides) {\n  return pdfiumModuleFactory(moduleOverrides);\n}\n\nexport const createPdfiumModule = loadPdfium;\n\nexport default loadPdfium;\n",
     )
     f.set_file_content(
         os.path.join(package_dir, "index.browser.mjs"),
-        "import pdfium from './pdfium.esm.js';\n\nexport default pdfium;\n",
+        "import pdfiumModuleFactory from './pdfium.esm.js';\n\nexport async function loadPdfium(moduleOverrides) {\n  return pdfiumModuleFactory(moduleOverrides);\n}\n\nexport const createPdfiumModule = loadPdfium;\n\nexport default loadPdfium;\n",
     )
     f.set_file_content(
         os.path.join(package_dir, "index.d.ts"),
-        "export interface PDFiumModuleFactory {\n  (moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n}\n\ndeclare const pdfiumModule: PDFiumModuleFactory;\n\nexport default pdfiumModule;\n",
+        "export interface PDFiumModuleFactory {\n  (moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n}\n\nexport interface PDFiumModuleLoader {\n  (moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n  loadPdfium(moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n  createPdfiumModule(moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n}\n\nexport function loadPdfium(moduleOverrides?: Record<string, unknown>): Promise<unknown>;\nexport function createPdfiumModule(moduleOverrides?: Record<string, unknown>): Promise<unknown>;\n\ndeclare const pdfiumModule: PDFiumModuleLoader;\n\nexport default pdfiumModule;\n",
     )
     readme_content = """# @techstark/pdfium
-
+    
 This package contains the generated WebAssembly build of PDFium for Node.js and browsers.
 It is intended for advanced integrations that want to consume the generated bindings directly.
-
+    
 ## Installation
-
+    
 ```bash
 npm install @techstark/pdfium
 ```
-
+    
 ## Usage
-
+    
 ### CommonJS
-
+    
 ```js
-const pdfiumModule = require('@techstark/pdfium');
-
+const { loadPdfium } = require('@techstark/pdfium');
+    
 async function main() {
-  const pdfium = await pdfiumModule();
+  const pdfium = await loadPdfium();
   console.log(typeof pdfium.ccall, typeof pdfium.cwrap);
 }
-
+    
 main().catch(console.error);
 ```
-
+    
 ### ES modules
-
+    
 ```js
-import pdfiumModule from '@techstark/pdfium';
-
-const pdfium = await pdfiumModule();
+import { loadPdfium } from '@techstark/pdfium';
+    
+const pdfium = await loadPdfium();
 console.log(typeof pdfium.ccall, typeof pdfium.cwrap);
 ```
-
+    
+The package also exposes `createPdfiumModule` as an alias for `loadPdfium`.
+    
 ## Notes
-
+    
 - This package ships the generated Emscripten artifacts (`pdfium.js`, `pdfium.wasm`, `pdfium.esm.js`, `pdfium.esm.wasm`) rather than a high-level PDF API.
 - It is best suited for integrations that want to call the underlying PDFium bindings directly.
 - For the latest source and issue tracking, see the repository below.
-
+    
 ## Repository
-
+    
 https://github.com/TechStark/pdfium-lib
 """
 
