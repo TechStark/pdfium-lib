@@ -227,12 +227,15 @@ jobs:
           tmpdir="$(mktemp -d)"
           trap 'rm -rf "$tmpdir"' EXIT
           npm pack --pack-destination "$tmpdir"
+          tarball="$(find "$tmpdir" -maxdepth 1 -name '*.tgz' | head -n 1)"
           cd "$tmpdir"
           npm init -y >/dev/null 2>&1
-          npm install "$(find "$tmpdir" -maxdepth 1 -name '*.tgz' | head -n 1)" >/dev/null 2>&1
-          pkg_dir="$tmpdir/node_modules/@techstark/pdfium"
-          if [ ! -f "$pkg_dir/package.json" ]; then
+          npm install --prefix "$tmpdir" "$tarball" >/dev/null 2>&1
+          pkg_dir="$(find "$tmpdir/node_modules" -type d \( -path '*/@techstark/pdfium' -o -path '*/techstark-pdfium' \) | head -n 1)"
+          if [ -z "$pkg_dir" ] || [ ! -f "$pkg_dir/package.json" ]; then
             echo "installed package directory not found" >&2
+            echo "node_modules contents:" >&2
+            find "$tmpdir/node_modules" -maxdepth 4 2>/dev/null | sort >&2 || true
             exit 1
           fi
           node -e "const pkg = require('$pkg_dir/index.cjs'); if (typeof pkg !== 'function' && typeof pkg !== 'object') { process.exit(1) } console.log('fresh install smoke test OK')"
